@@ -1,6 +1,10 @@
 import React from "react";
 import { ConfigProvider, Layout, Menu } from "antd";
-import { DeleteOutlined, HomeOutlined } from "@ant-design/icons";
+import {
+    DeleteOutlined,
+    HomeOutlined,
+    HistoryOutlined,
+} from "@ant-design/icons";
 import {
     HashRouter as Router,
     Routes,
@@ -11,6 +15,7 @@ import {
 import "./App.css";
 import HomePage from "./pages/HomePage";
 import DeleteNotificationPage from "./pages/DeleteNotificationPage";
+import AccountHistoryPage from "./pages/AccountHistoryPage";
 
 const { Sider, Content } = Layout;
 
@@ -24,6 +29,11 @@ const menuItems = [
         key: "/delete-notification",
         label: "Thông báo khi xóa file, thư mục",
         icon: <DeleteOutlined />,
+    },
+    {
+        key: "/account-history",
+        label: "Lịch sử tài khoản",
+        icon: <HistoryOutlined />,
     },
 ];
 
@@ -65,6 +75,10 @@ function AppLayout() {
                     <Route
                         path="/delete-notification"
                         element={<DeleteNotificationPage />}
+                    />
+                    <Route
+                        path="/account-history"
+                        element={<AccountHistoryPage />}
                     />
                 </Routes>
             </Content>
