@@ -90,7 +90,7 @@ function App() {
                 },
             }}
         >
-            <Router>
+            <Router basename="/mockup">
                 <AppLayout />
             </Router>
         </ConfigProvider>

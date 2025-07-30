@@ -120,9 +120,9 @@ function DeleteNotificationPage() {
                         gap: "12px",
                     }}
                 >
-                    <Text strong>
+                    <Text>
                         Bạn sắp xóa {deleteType === "file" ? "file" : "thư mục"}
-                        : {deleteItems[0]?.name}
+                        : <Text strong>{deleteItems[0]?.name}</Text>
                     </Text>
                 </div>
 
