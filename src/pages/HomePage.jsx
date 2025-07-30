@@ -4,6 +4,11 @@ import { Typography, Space, Card } from "antd";
 const { Title, Text } = Typography;
 
 function HomePage() {
+    // Set page title
+    React.useEffect(() => {
+        document.title = "Trang chủ - Mockup App";
+    }, []);
+
     return (
         <div
             style={{

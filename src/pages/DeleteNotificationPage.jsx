@@ -18,6 +18,11 @@ import {
 const { Title, Text } = Typography;
 
 function DeleteNotificationPage() {
+    // Set page title
+    React.useEffect(() => {
+        document.title = "Thông báo khi xóa file, thư mục - Mockup App";
+    }, []);
+
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [deleteType, setDeleteType] = useState("file");
     const [deleteItems, setDeleteItems] = useState([]);
