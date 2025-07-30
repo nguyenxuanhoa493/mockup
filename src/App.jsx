@@ -2,7 +2,7 @@ import React from "react";
 import { ConfigProvider, Layout, Menu } from "antd";
 import { DeleteOutlined, HomeOutlined } from "@ant-design/icons";
 import {
-    BrowserRouter as Router,
+    HashRouter as Router,
     Routes,
     Route,
     useNavigate,
@@ -90,7 +90,7 @@ function App() {
                 },
             }}
         >
-            <Router basename="/mockup">
+            <Router>
                 <AppLayout />
             </Router>
         </ConfigProvider>
