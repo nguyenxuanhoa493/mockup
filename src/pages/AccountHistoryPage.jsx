@@ -342,13 +342,7 @@ function AccountHistoryPage() {
                             columns={columns}
                             dataSource={filteredData}
                             rowKey="id"
-                            pagination={{
-                                pageSize: 10,
-                                showSizeChanger: true,
-                                showQuickJumper: true,
-                                showTotal: (total, range) =>
-                                    `${range[0]}-${range[1]} của ${total} bản ghi`,
-                            }}
+                            pagination={false}
                             scroll={{ x: 1000 }}
                         />
                     </Card>
