@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Header Icon</title>
+</head>
+<body>
+    <h1>Kiểm tra xem file App.jsx có component TopHeader không:</h1>
+    <pre id="result">Đang kiểm tra...</pre>
+    <script>
+        const result = document.getElementById('result');
+        fetch('/src/App.jsx')
+            .then(r => r.text())
+            .then(text => {
+                const hasTopHeader = text.includes('function TopHeader');
+                const hasMenuFold = text.includes('MenuFoldOutlined');
+                result.textContent = `TopHeader exists: ${hasTopHeader}\nMenuFoldOutlined imported: ${hasMenuFold}`;
+            });
+    </script>
+</body>
+</html>
