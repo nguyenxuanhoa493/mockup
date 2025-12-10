@@ -12,6 +12,7 @@ import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     ThunderboltOutlined,
+    RobotOutlined,
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -30,6 +31,7 @@ import { RoleProvider, useRole, ROLES } from "./contexts/RoleContext";
 import ResearcherProjectsPage from "./pages/researcher/ResearcherProjectsPage";
 import ManagerProjectsPage from "./pages/manager/ManagerProjectsPage";
 import OptimisticUpdatePage from "./pages/OptimisticUpdatePage";
+import AILearningAssistantPage from "./pages/AILearningAssistantPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -44,6 +46,11 @@ const menuItems = [
         key: "/nckh",
         label: "Hệ thống NCKH",
         icon: <DashboardOutlined />,
+    },
+    {
+        key: "/ai-learning-assistant",
+        label: "Trợ lý học tập AI",
+        icon: <RobotOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -236,6 +243,7 @@ function AppLayout() {
                 >
                     <Routes>
                         <Route path="/" element={<HomePage />} />
+                        <Route path="/ai-learning-assistant" element={<AILearningAssistantPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
