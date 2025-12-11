@@ -13,6 +13,16 @@ import {
     MenuUnfoldOutlined,
     ThunderboltOutlined,
     RobotOutlined,
+    LineChartOutlined,
+    FileTextOutlined,
+    CheckCircleOutlined,
+    TrophyOutlined,
+    BellOutlined,
+    ClockCircleOutlined,
+    VideoCameraOutlined,
+    SafetyCertificateOutlined,
+    BarChartOutlined,
+    GlobalOutlined,
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -32,6 +42,20 @@ import ResearcherProjectsPage from "./pages/researcher/ResearcherProjectsPage";
 import ManagerProjectsPage from "./pages/manager/ManagerProjectsPage";
 import OptimisticUpdatePage from "./pages/OptimisticUpdatePage";
 import AILearningAssistantPage from "./pages/AILearningAssistantPage";
+import LearningReportPage from "./pages/LearningReportPage";
+import AddHTMLToCoursePage from "./pages/AddHTMLToCoursePage";
+import AICreateCoursePage from "./pages/AICreateCoursePage";
+import AIGradingConfigPage from "./pages/AIGradingConfigPage";
+import KnowledgeRacePage from "./pages/KnowledgeRacePage";
+import PostTrainingManagementPage from "./pages/PostTrainingManagementPage";
+import NotificationHistoryPage from "./pages/NotificationHistoryPage";
+import ActivityLogPage from "./pages/ActivityLogPage";
+import OnlineClassIntegrationPage from "./pages/OnlineClassIntegrationPage";
+import OfflineClassActivityLogPage from "./pages/OfflineClassActivityLogPage";
+import ExamReportPage from "./pages/ExamReportPage";
+import CertificateReportPage from "./pages/CertificateReportPage";
+import ReportPage from "./pages/ReportPage";
+import CourseBankPage from "./pages/CourseBankPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -51,6 +75,76 @@ const menuItems = [
         key: "/ai-learning-assistant",
         label: "Trợ lý học tập AI",
         icon: <RobotOutlined />,
+    },
+    {
+        key: "/learning-report",
+        label: "Báo cáo học tập",
+        icon: <LineChartOutlined />,
+    },
+    {
+        key: "/add-html-course",
+        label: "Thêm HTML vào khóa học",
+        icon: <FileTextOutlined />,
+    },
+    {
+        key: "/ai-create-course",
+        label: "Tạo khóa học bằng AI",
+        icon: <ThunderboltOutlined />,
+    },
+    {
+        key: "/ai-grading-config",
+        label: "Cấu hình chấm điểm AI",
+        icon: <CheckCircleOutlined />,
+    },
+    {
+        key: "/knowledge-race",
+        label: "Đường đua tri thức",
+        icon: <TrophyOutlined />,
+    },
+    {
+        key: "/post-training-management",
+        label: "Quản lý hoạt động sau đào tạo",
+        icon: <LineChartOutlined />,
+    },
+    {
+        key: "/notification-history",
+        label: "Lịch sử gửi thông báo",
+        icon: <BellOutlined />,
+    },
+    {
+        key: "/activity-log",
+        label: "Nhật ký hoạt động",
+        icon: <ClockCircleOutlined />,
+    },
+    {
+        key: "/online-class-integration",
+        label: "Tích hợp đào tạo trực tuyến",
+        icon: <VideoCameraOutlined />,
+    },
+    {
+        key: "/offline-class-activity",
+        label: "Nhật ký lớp học offline",
+        icon: <HistoryOutlined />,
+    },
+    {
+        key: "/exam-report",
+        label: "Báo cáo chi tiết kỳ thi",
+        icon: <FileTextOutlined />,
+    },
+    {
+        key: "/certificate-report",
+        label: "Báo cáo chứng chỉ",
+        icon: <SafetyCertificateOutlined />,
+    },
+    {
+        key: "/report",
+        label: "Báo cáo tổng hợp",
+        icon: <BarChartOutlined />,
+    },
+    {
+        key: "/course-bank",
+        label: "Ngân hàng khóa học",
+        icon: <GlobalOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -244,6 +338,20 @@ function AppLayout() {
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/ai-learning-assistant" element={<AILearningAssistantPage />} />
+                        <Route path="/learning-report" element={<LearningReportPage />} />
+                        <Route path="/add-html-course" element={<AddHTMLToCoursePage />} />
+                        <Route path="/ai-create-course" element={<AICreateCoursePage />} />
+                        <Route path="/ai-grading-config" element={<AIGradingConfigPage />} />
+                        <Route path="/knowledge-race" element={<KnowledgeRacePage />} />
+                        <Route path="/post-training-management" element={<PostTrainingManagementPage />} />
+                        <Route path="/notification-history" element={<NotificationHistoryPage />} />
+                        <Route path="/activity-log" element={<ActivityLogPage />} />
+                        <Route path="/online-class-integration" element={<OnlineClassIntegrationPage />} />
+                        <Route path="/offline-class-activity" element={<OfflineClassActivityLogPage />} />
+                        <Route path="/exam-report" element={<ExamReportPage />} />
+                        <Route path="/certificate-report" element={<CertificateReportPage />} />
+                        <Route path="/report" element={<ReportPage />} />
+                        <Route path="/course-bank" element={<CourseBankPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
