@@ -23,6 +23,7 @@ import {
     SafetyCertificateOutlined,
     BarChartOutlined,
     GlobalOutlined,
+    CameraOutlined,
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -56,6 +57,7 @@ import ExamReportPage from "./pages/ExamReportPage";
 import CertificateReportPage from "./pages/CertificateReportPage";
 import ReportPage from "./pages/ReportPage";
 import CourseBankPage from "./pages/CourseBankPage";
+import QuizPreparationPage from "./pages/QuizPreparationPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -145,6 +147,11 @@ const menuItems = [
         key: "/course-bank",
         label: "Ngân hàng khóa học",
         icon: <GlobalOutlined />,
+    },
+    {
+        key: "/quiz-preparation",
+        label: "Chuẩn bị vào thi",
+        icon: <CameraOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -352,6 +359,7 @@ function AppLayout() {
                         <Route path="/certificate-report" element={<CertificateReportPage />} />
                         <Route path="/report" element={<ReportPage />} />
                         <Route path="/course-bank" element={<CourseBankPage />} />
+                        <Route path="/quiz-preparation" element={<QuizPreparationPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
