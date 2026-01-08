@@ -6,7 +6,6 @@ import {
     Space,
     Typography,
     Input,
-    Steps,
     message,
     Row,
     Col,
@@ -18,9 +17,10 @@ import {
     List,
     Progress,
     Collapse,
-    Timeline,
     Alert,
     InputNumber,
+    Segmented,
+    Badge,
 } from "antd";
 import {
     UploadOutlined,
@@ -30,10 +30,14 @@ import {
     BookOutlined,
     BulbOutlined,
     ThunderboltOutlined,
-    SettingOutlined,
     EyeOutlined,
     DownloadOutlined,
     PlayCircleOutlined,
+    DeleteOutlined,
+    ClockCircleOutlined,
+    LoadingOutlined,
+    EditOutlined,
+    FileAddOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -144,8 +148,9 @@ const SAMPLE_COURSE = {
 };
 
 function AICreateCoursePage() {
-    const [currentStep, setCurrentStep] = useState(0);
+    const [contentType, setContentType] = useState("course"); // 'course', 'content', 'exercise'
     const [fileList, setFileList] = useState([]);
+    const [fileStatus, setFileStatus] = useState({}); // Track embedding status per file
     const [courseConfig, setCourseConfig] = useState({
         targetAudience: "employee",
         level: "beginner",
@@ -154,6 +159,16 @@ function AICreateCoursePage() {
         includeQuiz: true,
         includeVideo: true,
         style: "practical",
+    });
+    const [contentConfig, setContentConfig] = useState({
+        contentType: "video-script",
+        length: "medium",
+        format: "structured",
+    });
+    const [exerciseConfig, setExerciseConfig] = useState({
+        exerciseType: "quiz",
+        difficulty: "medium",
+        numQuestions: 10,
     });
     const [customPrompt, setCustomPrompt] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -169,13 +184,53 @@ function AICreateCoursePage() {
         multiple: true,
         accept: ".pdf,.docx,.txt,.pptx",
         beforeUpload: (file) => {
-            setFileList([...fileList, file]);
+            const fileId = file.uid || `${file.name}-${Date.now()}`;
+            setFileList([...fileList, { ...file, uid: fileId }]);
+            setFileStatus({
+                ...fileStatus,
+                [fileId]: { status: "pending", progress: 0 },
+            });
             message.success(`Đã tải lên ${file.name}`);
+            
+            // Simulate embedding process
+            setTimeout(() => {
+                setFileStatus((prev) => ({
+                    ...prev,
+                    [fileId]: { status: "processing", progress: 0 },
+                }));
+                
+                const interval = setInterval(() => {
+                    setFileStatus((prev) => {
+                        const current = prev[fileId]?.progress || 0;
+                        if (current >= 100) {
+                            clearInterval(interval);
+                            return {
+                                ...prev,
+                                [fileId]: { 
+                                    status: "completed", 
+                                    progress: 100,
+                                    vectors: Math.floor(Math.random() * 500) + 100,
+                                    chunks: Math.floor(Math.random() * 50) + 10,
+                                },
+                            };
+                        }
+                        return {
+                            ...prev,
+                            [fileId]: { ...prev[fileId], progress: current + 20 },
+                        };
+                    });
+                }, 300);
+            }, 500);
+            
             return false;
         },
         onRemove: (file) => {
-            const newFileList = fileList.filter((f) => f !== file);
+            const fileId = file.uid;
+            const newFileList = fileList.filter((f) => f.uid !== fileId);
             setFileList(newFileList);
+            const newStatus = { ...fileStatus };
+            delete newStatus[fileId];
+            setFileStatus(newStatus);
         },
         fileList,
     };
@@ -186,9 +241,18 @@ function AICreateCoursePage() {
             return;
         }
 
+        // Check if all files are embedded
+        const allFilesEmbedded = fileList.every(
+            (file) => fileStatus[file.uid]?.status === "completed"
+        );
+        
+        if (!allFilesEmbedded && fileList.length > 0) {
+            message.warning("Vui lòng đợi tất cả file được xử lý xong");
+            return;
+        }
+
         setIsGenerating(true);
         setProgress(0);
-        setCurrentStep(2);
 
         // Simulate AI generation progress
         const interval = setInterval(() => {
@@ -197,7 +261,7 @@ function AICreateCoursePage() {
                     clearInterval(interval);
                     setIsGenerating(false);
                     setGeneratedCourse(SAMPLE_COURSE);
-                    message.success("Đã tạo khóa học thành công!");
+                    message.success(`Đã tạo ${contentType === 'course' ? 'khóa học' : contentType === 'content' ? 'nội dung' : 'bài tập'} thành công!`);
                     return 100;
                 }
                 return prev + 10;
@@ -205,173 +269,111 @@ function AICreateCoursePage() {
         }, 500);
     };
 
-    const steps = [
-        {
-            title: "Tải tài liệu",
-            icon: <UploadOutlined />,
-        },
-        {
-            title: "Cấu hình",
-            icon: <SettingOutlined />,
-        },
-        {
-            title: "Tạo khóa học",
-            icon: <RobotOutlined />,
-        },
-    ];
+    const getEmbeddingStats = () => {
+        const completed = fileList.filter(f => fileStatus[f.uid]?.status === "completed").length;
+        const processing = fileList.filter(f => fileStatus[f.uid]?.status === "processing").length;
+        const pending = fileList.filter(f => fileStatus[f.uid]?.status === "pending").length;
+        const totalVectors = fileList.reduce((sum, f) => sum + (fileStatus[f.uid]?.vectors || 0), 0);
+        const totalChunks = fileList.reduce((sum, f) => sum + (fileStatus[f.uid]?.chunks || 0), 0);
+        
+        return { completed, processing, pending, totalVectors, totalChunks, total: fileList.length };
+    };
 
-    const stepContent = () => {
-        switch (currentStep) {
-            case 0:
+    const stats = getEmbeddingStats();
+
+    const renderConfigPanel = () => {
+        switch (contentType) {
+            case "course":
                 return (
-                    <Card title="📁 Bước 1: Tải lên tài liệu học liệu">
-                        <Space direction="vertical" style={{ width: "100%" }} size="large">
-                            <Alert
-                                message="Hỗ trợ nhiều loại file"
-                                description="Bạn có thể tải lên PDF, Word, PowerPoint, hoặc file text chứa nội dung đề cương, tài liệu tham khảo để AI phân tích và tạo khóa học."
-                                type="info"
-                                showIcon
-                            />
-
-                            <Dragger {...uploadProps}>
-                                <p className="ant-upload-drag-icon">
-                                    <FileTextOutlined style={{ fontSize: 48, color: "#1677ff" }} />
-                                </p>
-                                <p className="ant-upload-text">
-                                    Click hoặc kéo file vào đây để tải lên
-                                </p>
-                                <p className="ant-upload-hint">
-                                    Hỗ trợ: PDF, DOCX, PPTX, TXT (tối đa 10 files)
-                                </p>
-                            </Dragger>
-
-                            <Divider>HOẶC</Divider>
-
-                            <Card size="small" title="✍️ Nhập yêu cầu tùy chỉnh">
-                                <TextArea
-                                    rows={6}
-                                    placeholder={`Ví dụ:\n- Tạo khóa học về an toàn thông tin cho nhân viên\n- Bao gồm 12 bài học, 4 module\n- Có video, quiz và case study\n- Tập trung vào thực hành\n- Độ khó: Cơ bản đến Trung cấp`}
-                                    value={customPrompt}
-                                    onChange={(e) => setCustomPrompt(e.target.value)}
-                                />
-                            </Card>
-
-                            <Button
-                                type="primary"
-                                size="large"
-                                block
-                                onClick={() => setCurrentStep(1)}
-                                disabled={fileList.length === 0 && !customPrompt}
-                            >
-                                Tiếp theo →
-                            </Button>
-                        </Space>
-                    </Card>
-                );
-
-            case 1:
-                return (
-                    <Card title="⚙️ Bước 2: Cấu hình khóa học">
-                        <Space direction="vertical" style={{ width: "100%" }} size="large">
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={12}>
-                                    <Card size="small" title="Đối tượng học viên">
-                                        <Select
-                                            style={{ width: "100%" }}
-                                            value={courseConfig.targetAudience}
-                                            onChange={(value) =>
-                                                setCourseConfig({ ...courseConfig, targetAudience: value })
-                                            }
-                                            options={[
-                                                { value: "employee", label: "Nhân viên văn phòng" },
-                                                { value: "manager", label: "Quản lý cấp trung" },
-                                                { value: "technical", label: "Nhân viên IT/Kỹ thuật" },
-                                                { value: "sales", label: "Nhân viên kinh doanh" },
-                                                { value: "general", label: "Tất cả nhân viên" },
-                                            ]}
-                                        />
-                                    </Card>
-                                </Col>
-
-                                <Col xs={24} md={12}>
-                                    <Card size="small" title="Độ khó">
-                                        <Radio.Group
-                                            value={courseConfig.level}
-                                            onChange={(e) =>
-                                                setCourseConfig({ ...courseConfig, level: e.target.value })
-                                            }
-                                            style={{ width: "100%" }}
-                                        >
-                                            <Radio value="beginner">Cơ bản</Radio>
-                                            <Radio value="intermediate">Trung cấp</Radio>
-                                            <Radio value="advanced">Nâng cao</Radio>
-                                        </Radio.Group>
-                                    </Card>
-                                </Col>
-
-                                <Col xs={24} md={12}>
-                                    <Card size="small" title="Số lượng bài học">
-                                        <Slider
-                                            min={6}
-                                            max={20}
-                                            value={courseConfig.numLessons}
-                                            onChange={(value) =>
-                                                setCourseConfig({ ...courseConfig, numLessons: value })
-                                            }
-                                            marks={{
-                                                6: "6",
-                                                10: "10",
-                                                15: "15",
-                                                20: "20",
-                                            }}
-                                        />
-                                        <Text type="secondary">
-                                            {courseConfig.numLessons} bài học
-                                        </Text>
-                                    </Card>
-                                </Col>
-
-                                <Col xs={24} md={12}>
-                                    <Card size="small" title="Thời lượng khóa học">
-                                        <InputNumber
-                                            min={1}
-                                            max={12}
-                                            value={courseConfig.duration}
-                                            onChange={(value) =>
-                                                setCourseConfig({ ...courseConfig, duration: value })
-                                            }
-                                            addonAfter="tuần"
-                                            style={{ width: "100%" }}
-                                        />
-                                    </Card>
-                                </Col>
-
-                                <Col xs={24}>
-                                    <Card size="small" title="Phong cách nội dung">
-                                        <Radio.Group
-                                            value={courseConfig.style}
-                                            onChange={(e) =>
-                                                setCourseConfig({ ...courseConfig, style: e.target.value })
-                                            }
-                                            style={{ width: "100%" }}
-                                        >
-                                            <Space direction="vertical">
-                                                <Radio value="theoretical">
-                                                    <strong>Lý thuyết:</strong> Tập trung vào kiến thức nền tảng
-                                                </Radio>
-                                                <Radio value="practical">
-                                                    <strong>Thực hành:</strong> Nhiều ví dụ, case study, bài tập
-                                                </Radio>
-                                                <Radio value="balanced">
-                                                    <strong>Cân bằng:</strong> Kết hợp lý thuyết và thực hành
-                                                </Radio>
-                                            </Space>
-                                        </Radio.Group>
-                                    </Card>
-                                </Col>
-
-                                <Col xs={24}>
-                                    <Card size="small" title="Nội dung bao gồm">
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Đối tượng học viên</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={courseConfig.targetAudience}
+                                        onChange={(value) =>
+                                            setCourseConfig({ ...courseConfig, targetAudience: value })
+                                        }
+                                        options={[
+                                            { value: "employee", label: "Nhân viên văn phòng" },
+                                            { value: "manager", label: "Quản lý cấp trung" },
+                                            { value: "technical", label: "Nhân viên IT/Kỹ thuật" },
+                                            { value: "sales", label: "Nhân viên kinh doanh" },
+                                            { value: "general", label: "Tất cả nhân viên" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Độ khó</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={courseConfig.level}
+                                        onChange={(value) =>
+                                            setCourseConfig({ ...courseConfig, level: value })
+                                        }
+                                        options={[
+                                            { value: "beginner", label: "Cơ bản" },
+                                            { value: "intermediate", label: "Trung cấp" },
+                                            { value: "advanced", label: "Nâng cao" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Số lượng bài học: {courseConfig.numLessons}</Text>
+                                    <Slider
+                                        min={6}
+                                        max={20}
+                                        value={courseConfig.numLessons}
+                                        onChange={(value) =>
+                                            setCourseConfig({ ...courseConfig, numLessons: value })
+                                        }
+                                        marks={{ 6: "6", 10: "10", 15: "15", 20: "20" }}
+                                        style={{ marginTop: 8 }}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Thời lượng (tuần)</Text>
+                                    <InputNumber
+                                        min={1}
+                                        max={12}
+                                        value={courseConfig.duration}
+                                        onChange={(value) =>
+                                            setCourseConfig({ ...courseConfig, duration: value })
+                                        }
+                                        style={{ width: "100%", marginTop: 8 }}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={24}>
+                                <div>
+                                    <Text strong>Phong cách</Text>
+                                    <Radio.Group
+                                        value={courseConfig.style}
+                                        onChange={(e) =>
+                                            setCourseConfig({ ...courseConfig, style: e.target.value })
+                                        }
+                                        style={{ marginTop: 8, display: "block" }}
+                                    >
+                                        <Space direction="vertical">
+                                            <Radio value="theoretical">Lý thuyết</Radio>
+                                            <Radio value="practical">Thực hành</Radio>
+                                            <Radio value="balanced">Cân bằng</Radio>
+                                        </Space>
+                                    </Radio.Group>
+                                </div>
+                            </Col>
+                            <Col span={24}>
+                                <div>
+                                    <Text strong>Bao gồm</Text>
+                                    <div style={{ marginTop: 8 }}>
                                         <Space wrap>
                                             <Tag
                                                 color={courseConfig.includeQuiz ? "blue" : "default"}
@@ -395,209 +397,131 @@ function AICreateCoursePage() {
                                                     })
                                                 }
                                             >
-                                                {courseConfig.includeVideo && <CheckCircleOutlined />} Video bài giảng
+                                                {courseConfig.includeVideo && <CheckCircleOutlined />} Video
                                             </Tag>
                                         </Space>
-                                    </Card>
-                                </Col>
-                            </Row>
-
-                            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                                <Button onClick={() => setCurrentStep(0)}>← Quay lại</Button>
-                                <Button type="primary" size="large" onClick={handleGenerateCourse}>
-                                    <RobotOutlined /> Tạo khóa học bằng AI
-                                </Button>
-                            </Space>
-                        </Space>
-                    </Card>
+                                    </div>
+                                </div>
+                            </Col>
+                        </Row>
+                    </Space>
                 );
 
-            case 2:
+            case "content":
                 return (
-                    <Card
-                        title={
-                            isGenerating
-                                ? "🤖 AI đang tạo khóa học..."
-                                : "✅ Khóa học đã được tạo thành công!"
-                        }
-                    >
-                        {isGenerating ? (
-                            <Space direction="vertical" style={{ width: "100%" }} size="large">
-                                <Progress percent={progress} status="active" />
-                                <Timeline
-                                    items={[
-                                        {
-                                            color: progress >= 20 ? "green" : "blue",
-                                            children: (
-                                                <Text>
-                                                    Phân tích tài liệu và yêu cầu...{" "}
-                                                    {progress >= 20 && <CheckCircleOutlined />}
-                                                </Text>
-                                            ),
-                                        },
-                                        {
-                                            color: progress >= 40 ? "green" : "gray",
-                                            children: (
-                                                <Text>
-                                                    Tạo cấu trúc khóa học...{" "}
-                                                    {progress >= 40 && <CheckCircleOutlined />}
-                                                </Text>
-                                            ),
-                                        },
-                                        {
-                                            color: progress >= 60 ? "green" : "gray",
-                                            children: (
-                                                <Text>
-                                                    Sinh nội dung bài học...{" "}
-                                                    {progress >= 60 && <CheckCircleOutlined />}
-                                                </Text>
-                                            ),
-                                        },
-                                        {
-                                            color: progress >= 80 ? "green" : "gray",
-                                            children: (
-                                                <Text>
-                                                    Tạo bài kiểm tra và quiz...{" "}
-                                                    {progress >= 80 && <CheckCircleOutlined />}
-                                                </Text>
-                                            ),
-                                        },
-                                        {
-                                            color: progress >= 100 ? "green" : "gray",
-                                            children: (
-                                                <Text>
-                                                    Hoàn thiện và tối ưu hóa...{" "}
-                                                    {progress >= 100 && <CheckCircleOutlined />}
-                                                </Text>
-                                            ),
-                                        },
-                                    ]}
-                                />
-                            </Space>
-                        ) : generatedCourse ? (
-                            <Space direction="vertical" style={{ width: "100%" }} size="large">
-                                <Card
-                                    size="small"
-                                    style={{
-                                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                        color: "white",
-                                    }}
-                                >
-                                    <Title level={3} style={{ color: "white", margin: 0 }}>
-                                        {generatedCourse.title}
-                                    </Title>
-                                    <Paragraph style={{ color: "white", marginTop: 10, marginBottom: 0 }}>
-                                        {generatedCourse.description}
-                                    </Paragraph>
-                                </Card>
-
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={12} md={6}>
-                                        <Card size="small">
-                                            <Statistic
-                                                title="Thời lượng"
-                                                value={generatedCourse.duration}
-                                                prefix={<ClockCircleOutlined />}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={12} md={6}>
-                                        <Card size="small">
-                                            <Statistic
-                                                title="Độ khó"
-                                                value={generatedCourse.level}
-                                                prefix={<BulbOutlined />}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={12} md={6}>
-                                        <Card size="small">
-                                            <Statistic
-                                                title="Số bài học"
-                                                value={generatedCourse.totalLessons}
-                                                prefix={<BookOutlined />}
-                                            />
-                                        </Card>
-                                    </Col>
-                                    <Col xs={12} md={6}>
-                                        <Card size="small">
-                                            <Statistic
-                                                title="Bài kiểm tra"
-                                                value={generatedCourse.totalQuizzes}
-                                                prefix={<CheckCircleOutlined />}
-                                            />
-                                        </Card>
-                                    </Col>
-                                </Row>
-
-                                <Card title="📚 Cấu trúc khóa học">
-                                    <Collapse
-                                        items={generatedCourse.modules.map((module, index) => ({
-                                            key: index,
-                                            label: (
-                                                <Space>
-                                                    <Tag color="blue">Module {index + 1}</Tag>
-                                                    <Text strong>{module.title}</Text>
-                                                    <Text type="secondary">
-                                                        ({module.lessons.length} bài học)
-                                                    </Text>
-                                                </Space>
-                                            ),
-                                            children: (
-                                                <List
-                                                    dataSource={module.lessons}
-                                                    renderItem={(lesson, lessonIndex) => (
-                                                        <List.Item>
-                                                            <List.Item.Meta
-                                                                avatar={
-                                                                    <Tag color="geekblue">
-                                                                        {lessonIndex + 1}
-                                                                    </Tag>
-                                                                }
-                                                                title={lesson.title}
-                                                                description={
-                                                                    <Space direction="vertical" size={4}>
-                                                                        <Space>
-                                                                            <Tag icon={<PlayCircleOutlined />}>
-                                                                                {lesson.type}
-                                                                            </Tag>
-                                                                            <Tag>{lesson.duration}</Tag>
-                                                                        </Space>
-                                                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                                                            {lesson.topics.join(" • ")}
-                                                                        </Text>
-                                                                    </Space>
-                                                                }
-                                                            />
-                                                        </List.Item>
-                                                    )}
-                                                />
-                                            ),
-                                        }))}
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                        <Row gutter={[16, 16]}>
+                            <Col span={24}>
+                                <div>
+                                    <Text strong>Loại nội dung</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={contentConfig.contentType}
+                                        onChange={(value) =>
+                                            setContentConfig({ ...contentConfig, contentType: value })
+                                        }
+                                        options={[
+                                            { value: "video-script", label: "Video Script" },
+                                            { value: "reading", label: "Tài liệu đọc" },
+                                            { value: "case-study", label: "Case Study" },
+                                            { value: "presentation", label: "Bài thuyết trình" },
+                                        ]}
                                     />
-                                </Card>
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Độ dài</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={contentConfig.length}
+                                        onChange={(value) =>
+                                            setContentConfig({ ...contentConfig, length: value })
+                                        }
+                                        options={[
+                                            { value: "short", label: "Ngắn (5-10 phút)" },
+                                            { value: "medium", label: "Trung bình (10-20 phút)" },
+                                            { value: "long", label: "Dài (20-30 phút)" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Định dạng</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={contentConfig.format}
+                                        onChange={(value) =>
+                                            setContentConfig({ ...contentConfig, format: value })
+                                        }
+                                        options={[
+                                            { value: "structured", label: "Có cấu trúc" },
+                                            { value: "narrative", label: "Tự sự" },
+                                            { value: "interactive", label: "Tương tác" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                        </Row>
+                    </Space>
+                );
 
-                                <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                                    <Button
-                                        onClick={() => {
-                                            setCurrentStep(0);
-                                            setGeneratedCourse(null);
-                                            setFileList([]);
-                                            setCustomPrompt("");
-                                        }}
-                                    >
-                                        Tạo khóa học mới
-                                    </Button>
-                                    <Space>
-                                        <Button icon={<EyeOutlined />}>Xem chi tiết</Button>
-                                        <Button type="primary" icon={<DownloadOutlined />}>
-                                            Xuất khóa học
-                                        </Button>
-                                    </Space>
-                                </Space>
-                            </Space>
-                        ) : null}
-                    </Card>
+            case "exercise":
+                return (
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                        <Row gutter={[16, 16]}>
+                            <Col span={24}>
+                                <div>
+                                    <Text strong>Loại bài tập</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={exerciseConfig.exerciseType}
+                                        onChange={(value) =>
+                                            setExerciseConfig({ ...exerciseConfig, exerciseType: value })
+                                        }
+                                        options={[
+                                            { value: "quiz", label: "Trắc nghiệm" },
+                                            { value: "assignment", label: "Bài tập thực hành" },
+                                            { value: "case-study", label: "Phân tích tình huống" },
+                                            { value: "project", label: "Dự án" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Độ khó</Text>
+                                    <Select
+                                        style={{ width: "100%", marginTop: 8 }}
+                                        value={exerciseConfig.difficulty}
+                                        onChange={(value) =>
+                                            setExerciseConfig({ ...exerciseConfig, difficulty: value })
+                                        }
+                                        options={[
+                                            { value: "easy", label: "Dễ" },
+                                            { value: "medium", label: "Trung bình" },
+                                            { value: "hard", label: "Khó" },
+                                        ]}
+                                    />
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div>
+                                    <Text strong>Số lượng câu hỏi</Text>
+                                    <InputNumber
+                                        min={5}
+                                        max={50}
+                                        value={exerciseConfig.numQuestions}
+                                        onChange={(value) =>
+                                            setExerciseConfig({ ...exerciseConfig, numQuestions: value })
+                                        }
+                                        style={{ width: "100%", marginTop: 8 }}
+                                    />
+                                </div>
+                            </Col>
+                        </Row>
+                    </Space>
                 );
 
             default:
@@ -606,7 +530,7 @@ function AICreateCoursePage() {
     };
 
     return (
-        <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "1600px", margin: "0 auto" }}>
             <div
                 style={{
                     display: "flex",
@@ -625,50 +549,289 @@ function AICreateCoursePage() {
             </div>
 
             <Row gutter={[24, 24]}>
-                <Col xs={24} lg={6}>
-                    <Card size="small" title="📋 Quy trình">
-                        <Steps
-                            direction="vertical"
-                            current={currentStep}
-                            items={steps}
-                            style={{ marginTop: 16 }}
-                        />
+                {/* LEFT PANEL - Upload & Embedding Status */}
+                <Col xs={24} lg={10}>
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                        {/* File Upload Section */}
+                        <Card title={<><UploadOutlined /> Tải lên tài liệu</>}>
+                            <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                                <Dragger {...uploadProps}>
+                                    <p className="ant-upload-drag-icon">
+                                        <FileTextOutlined style={{ fontSize: 48, color: "#1677ff" }} />
+                                    </p>
+                                    <p className="ant-upload-text">
+                                        Click hoặc kéo file vào đây
+                                    </p>
+                                    <p className="ant-upload-hint">
+                                        Hỗ trợ: PDF, DOCX, PPTX, TXT
+                                    </p>
+                                </Dragger>
 
-                        <Divider />
+                                <Divider style={{ margin: "8px 0" }}>HOẶC</Divider>
 
-                        <Alert
-                            message="💡 Mẹo"
-                            description={
-                                <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12 }}>
-                                    <li>Tải lên đề cương hoặc tài liệu chi tiết</li>
-                                    <li>Cấu hình rõ ràng để AI tạo đúng yêu cầu</li>
-                                    <li>Có thể chỉnh sửa sau khi AI tạo xong</li>
-                                </ul>
-                            }
-                            type="info"
-                        />
-                    </Card>
+                                <TextArea
+                                    rows={4}
+                                    placeholder="Nhập mô tả yêu cầu tùy chỉnh..."
+                                    value={customPrompt}
+                                    onChange={(e) => setCustomPrompt(e.target.value)}
+                                />
+                            </Space>
+                        </Card>
+
+                        {/* Embedding Status Section */}
+                        {fileList.length > 0 && (
+                            <Card 
+                                title={
+                                    <Space>
+                                        <LoadingOutlined spin={stats.processing > 0} />
+                                        Trạng thái xử lý
+                                    </Space>
+                                }
+                            >
+                                <Space direction="vertical" style={{ width: "100%" }} size="small">
+                                    {/* Overall Stats */}
+                                    <Row gutter={8}>
+                                        <Col span={8}>
+                                            <Card size="small" style={{ textAlign: "center" }}>
+                                                <Badge status={stats.processing > 0 ? "processing" : "success"} />
+                                                <div style={{ fontSize: 20, fontWeight: "bold" }}>
+                                                    {stats.completed}/{stats.total}
+                                                </div>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>Hoàn thành</Text>
+                                            </Card>
+                                        </Col>
+                                        <Col span={8}>
+                                            <Card size="small" style={{ textAlign: "center" }}>
+                                                <FileTextOutlined style={{ fontSize: 16, color: "#1677ff" }} />
+                                                <div style={{ fontSize: 20, fontWeight: "bold" }}>
+                                                    {stats.totalChunks}
+                                                </div>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>Chunks</Text>
+                                            </Card>
+                                        </Col>
+                                        <Col span={8}>
+                                            <Card size="small" style={{ textAlign: "center" }}>
+                                                <ThunderboltOutlined style={{ fontSize: 16, color: "#52c41a" }} />
+                                                <div style={{ fontSize: 20, fontWeight: "bold" }}>
+                                                    {stats.totalVectors}
+                                                </div>
+                                                <Text type="secondary" style={{ fontSize: 12 }}>Vectors</Text>
+                                            </Card>
+                                        </Col>
+                                    </Row>
+
+                                    <Divider style={{ margin: "12px 0" }} />
+
+                                    {/* File Status List */}
+                                    <List
+                                        size="small"
+                                        dataSource={fileList}
+                                        renderItem={(file) => {
+                                            const status = fileStatus[file.uid] || {};
+                                            return (
+                                                <List.Item
+                                                    actions={[
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            danger
+                                                            icon={<DeleteOutlined />}
+                                                            onClick={() => uploadProps.onRemove(file)}
+                                                        />
+                                                    ]}
+                                                >
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            status.status === "completed" ? (
+                                                                <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 20 }} />
+                                                            ) : status.status === "processing" ? (
+                                                                <LoadingOutlined style={{ color: "#1677ff", fontSize: 20 }} />
+                                                            ) : (
+                                                                <ClockCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
+                                                            )
+                                                        }
+                                                        title={
+                                                            <Text ellipsis style={{ maxWidth: 200 }}>
+                                                                {file.name}
+                                                            </Text>
+                                                        }
+                                                        description={
+                                                            status.status === "completed" ? (
+                                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                                    {status.chunks} chunks • {status.vectors} vectors
+                                                                </Text>
+                                                            ) : status.status === "processing" ? (
+                                                                <Progress percent={status.progress} size="small" />
+                                                            ) : (
+                                                                <Text type="secondary" style={{ fontSize: 12 }}>Đang chờ...</Text>
+                                                            )
+                                                        }
+                                                    />
+                                                </List.Item>
+                                            );
+                                        }}
+                                    />
+                                </Space>
+                            </Card>
+                        )}
+                    </Space>
                 </Col>
 
-                <Col xs={24} lg={18}>
-                    {stepContent()}
+                {/* RIGHT PANEL - Configuration & Generation */}
+                <Col xs={24} lg={14}>
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                        {/* Content Type Selection */}
+                        <Card title={<><FileAddOutlined /> Loại nội dung</>}>
+                            <Segmented
+                                block
+                                value={contentType}
+                                onChange={setContentType}
+                                options={[
+                                    {
+                                        label: (
+                                            <div style={{ padding: "8px 0" }}>
+                                                <div><BookOutlined /> Tạo khóa học</div>
+                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                    Khóa học hoàn chỉnh với modules
+                                                </Text>
+                                            </div>
+                                        ),
+                                        value: "course",
+                                    },
+                                    {
+                                        label: (
+                                            <div style={{ padding: "8px 0" }}>
+                                                <div><FileTextOutlined /> Tạo nội dung</div>
+                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                    Nội dung đơn lẻ hoặc bài học
+                                                </Text>
+                                            </div>
+                                        ),
+                                        value: "content",
+                                    },
+                                    {
+                                        label: (
+                                            <div style={{ padding: "8px 0" }}>
+                                                <div><EditOutlined /> Bài tập</div>
+                                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                                    Quiz và bài tập thực hành
+                                                </Text>
+                                            </div>
+                                        ),
+                                        value: "exercise",
+                                    },
+                                ]}
+                            />
+                        </Card>
+
+                        {/* Dynamic Configuration Panel */}
+                        <Card title={<><BulbOutlined /> Cấu hình</>}>
+                            {renderConfigPanel()}
+                        </Card>
+
+                        {/* Custom Prompt Section */}
+                        <Card title={<><RobotOutlined /> Prompt tùy chỉnh</>}>
+                            <TextArea
+                                rows={6}
+                                placeholder={
+                                    contentType === "course"
+                                        ? "Ví dụ:\n- Tạo khóa học về an toàn thông tin cho nhân viên\n- Bao gồm 12 bài học, 4 module\n- Có video, quiz và case study\n- Tập trung vào thực hành\n- Độ khó: Cơ bản đến Trung cấp"
+                                        : contentType === "content"
+                                        ? "Ví dụ:\n- Tạo video script về bảo mật mật khẩu\n- Thời lượng 10 phút\n- Phong cách: Dễ hiểu, có ví dụ thực tế\n- Bao gồm demo và checklist"
+                                        : "Ví dụ:\n- Tạo 20 câu hỏi trắc nghiệm về an toàn thông tin\n- Độ khó: Trung bình\n- Có giải thích đáp án\n- Bao gồm case study"
+                                }
+                                value={customPrompt}
+                                onChange={(e) => setCustomPrompt(e.target.value)}
+                            />
+                        </Card>
+
+                        {/* Generate Button */}
+                        <Button
+                            type="primary"
+                            size="large"
+                            block
+                            icon={isGenerating ? <LoadingOutlined /> : <ThunderboltOutlined />}
+                            onClick={handleGenerateCourse}
+                            disabled={isGenerating || (fileList.length === 0 && !customPrompt) || stats.processing > 0}
+                            loading={isGenerating}
+                        >
+                            {isGenerating ? `Đang tạo... ${progress}%` : `Tạo ${contentType === 'course' ? 'khóa học' : contentType === 'content' ? 'nội dung' : 'bài tập'} bằng AI`}
+                        </Button>
+
+                        {/* Generation Progress */}
+                        {isGenerating && (
+                            <Card>
+                                <Space direction="vertical" style={{ width: "100%" }}>
+                                    <Progress percent={progress} status="active" />
+                                    <List
+                                        size="small"
+                                        dataSource={[
+                                            { step: "Phân tích tài liệu", threshold: 20 },
+                                            { step: "Tạo cấu trúc", threshold: 40 },
+                                            { step: "Sinh nội dung", threshold: 60 },
+                                            { step: "Tạo bài kiểm tra", threshold: 80 },
+                                            { step: "Hoàn thiện", threshold: 100 },
+                                        ]}
+                                        renderItem={(item) => (
+                                            <List.Item>
+                                                <Space>
+                                                    {progress >= item.threshold ? (
+                                                        <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                                                    ) : progress >= item.threshold - 20 ? (
+                                                        <LoadingOutlined />
+                                                    ) : (
+                                                        <ClockCircleOutlined style={{ color: "#d9d9d9" }} />
+                                                    )}
+                                                    <Text
+                                                        type={progress >= item.threshold ? "success" : "secondary"}
+                                                    >
+                                                        {item.step}
+                                                    </Text>
+                                                </Space>
+                                            </List.Item>
+                                        )}
+                                    />
+                                </Space>
+                            </Card>
+                        )}
+
+                        {/* Generated Result */}
+                        {generatedCourse && !isGenerating && (
+                            <Card
+                                title={<><CheckCircleOutlined style={{ color: "#52c41a" }} /> Kết quả</>}
+                                extra={
+                                    <Space>
+                                        <Button icon={<EyeOutlined />}>Xem chi tiết</Button>
+                                        <Button type="primary" icon={<DownloadOutlined />}>
+                                            Xuất
+                                        </Button>
+                                    </Space>
+                                }
+                            >
+                                <Alert
+                                    message="Đã tạo thành công!"
+                                    description={`${contentType === 'course' ? 'Khóa học' : contentType === 'content' ? 'Nội dung' : 'Bài tập'} đã được tạo và sẵn sàng sử dụng.`}
+                                    type="success"
+                                    showIcon
+                                />
+                                <Divider />
+                                {/* Show preview based on content type */}
+                                <div>
+                                    <Title level={4}>{generatedCourse.title}</Title>
+                                    <Paragraph>{generatedCourse.description}</Paragraph>
+                                    <Space wrap>
+                                        <Tag icon={<ClockCircleOutlined />}>{generatedCourse.duration}</Tag>
+                                        <Tag icon={<BookOutlined />}>{generatedCourse.totalLessons} bài học</Tag>
+                                        <Tag icon={<CheckCircleOutlined />}>{generatedCourse.totalQuizzes} bài kiểm tra</Tag>
+                                    </Space>
+                                </div>
+                            </Card>
+                        )}
+                    </Space>
                 </Col>
             </Row>
         </div>
     );
 }
-
-// Add Statistic component for display
-const Statistic = ({ title, value, prefix }) => (
-    <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 24, color: "#1677ff", marginBottom: 8 }}>
-            {prefix} {value}
-        </div>
-        <div style={{ color: "#8c8c8c", fontSize: 14 }}>{title}</div>
-    </div>
-);
-
-// Add missing icon
-import { ClockCircleOutlined } from "@ant-design/icons";
 
 export default AICreateCoursePage;

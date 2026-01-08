@@ -24,6 +24,8 @@ import {
     BarChartOutlined,
     GlobalOutlined,
     CameraOutlined,
+    DollarOutlined,
+    CheckSquareOutlined, // Added icon
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -47,6 +49,7 @@ import LearningReportPage from "./pages/LearningReportPage";
 import AddHTMLToCoursePage from "./pages/AddHTMLToCoursePage";
 import AICreateCoursePage from "./pages/AICreateCoursePage";
 import AIGradingConfigPage from "./pages/AIGradingConfigPage";
+import PassFailGradingPage from "./pages/PassFailGradingPage"; // Import new page
 import KnowledgeRacePage from "./pages/KnowledgeRacePage";
 import PostTrainingManagementPage from "./pages/PostTrainingManagementPage";
 import NotificationHistoryPage from "./pages/NotificationHistoryPage";
@@ -58,6 +61,7 @@ import CertificateReportPage from "./pages/CertificateReportPage";
 import ReportPage from "./pages/ReportPage";
 import CourseBankPage from "./pages/CourseBankPage";
 import QuizPreparationPage from "./pages/QuizPreparationPage";
+import SalaryV2Page from "./pages/SalaryV2Page";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -97,6 +101,11 @@ const menuItems = [
         key: "/ai-grading-config",
         label: "Cấu hình chấm điểm AI",
         icon: <CheckCircleOutlined />,
+    },
+    {
+        key: "/pass-fail-grading",
+        label: "Chấm điểm Đạt/Chưa đạt",
+        icon: <CheckSquareOutlined />,
     },
     {
         key: "/knowledge-race",
@@ -152,6 +161,11 @@ const menuItems = [
         key: "/quiz-preparation",
         label: "Chuẩn bị vào thi",
         icon: <CameraOutlined />,
+    },
+    {
+        key: "/salary-v2",
+        label: "Tính lương V2",
+        icon: <DollarOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -349,6 +363,7 @@ function AppLayout() {
                         <Route path="/add-html-course" element={<AddHTMLToCoursePage />} />
                         <Route path="/ai-create-course" element={<AICreateCoursePage />} />
                         <Route path="/ai-grading-config" element={<AIGradingConfigPage />} />
+                        <Route path="/pass-fail-grading" element={<PassFailGradingPage />} />
                         <Route path="/knowledge-race" element={<KnowledgeRacePage />} />
                         <Route path="/post-training-management" element={<PostTrainingManagementPage />} />
                         <Route path="/notification-history" element={<NotificationHistoryPage />} />
@@ -360,6 +375,7 @@ function AppLayout() {
                         <Route path="/report" element={<ReportPage />} />
                         <Route path="/course-bank" element={<CourseBankPage />} />
                         <Route path="/quiz-preparation" element={<QuizPreparationPage />} />
+                        <Route path="/salary-v2" element={<SalaryV2Page />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
