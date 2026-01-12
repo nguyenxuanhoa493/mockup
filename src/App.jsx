@@ -25,7 +25,8 @@ import {
     GlobalOutlined,
     CameraOutlined,
     DollarOutlined,
-    CheckSquareOutlined, // Added icon
+    CheckSquareOutlined,
+    ApartmentOutlined,
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -62,6 +63,7 @@ import ReportPage from "./pages/ReportPage";
 import CourseBankPage from "./pages/CourseBankPage";
 import QuizPreparationPage from "./pages/QuizPreparationPage";
 import SalaryV2Page from "./pages/SalaryV2Page";
+import BreadcrumbsDemo from "./pages/BreadcrumbsDemo";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -166,6 +168,11 @@ const menuItems = [
         key: "/salary-v2",
         label: "Tính lương V2",
         icon: <DollarOutlined />,
+    },
+    {
+        key: "/breadcrumbs-demo",
+        label: "Breadcrumbs Demo",
+        icon: <ApartmentOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -376,6 +383,7 @@ function AppLayout() {
                         <Route path="/course-bank" element={<CourseBankPage />} />
                         <Route path="/quiz-preparation" element={<QuizPreparationPage />} />
                         <Route path="/salary-v2" element={<SalaryV2Page />} />
+                        <Route path="/breadcrumbs-demo" element={<BreadcrumbsDemo />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
