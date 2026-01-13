@@ -17,12 +17,14 @@ import {
     Popover,
     Row,
     Col,
-    message
+    message,
+    Modal,
+    Menu
 } from 'antd';
 import {
     InboxOutlined,
     FilePdfOutlined,
-    FilePptOutlined,
+    FilePptOutlined, // Corrected import
     DeleteOutlined,
     SendOutlined,
     RobotOutlined,
@@ -35,7 +37,7 @@ import {
 
 const { Dragger } = Upload;
 const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
+const { Sider, Content } = Layout;
 
 // --- Mock Data ---
 
@@ -93,111 +95,157 @@ const MOCK_CHAT_HISTORY = [
 
 // --- Components ---
 
-// 1. Concept Highlighter Component
-const ConceptText = ({ text }) => {
-    if (!text) return null;
-
-    // Regex to find words wrapped in [] usually, but here we scan for keys in MOCK_CONCEPTS
-    // For simplicity in this mock, I'll rely on exact string matching or manual marking in mock data
-    // Let's assume the mock data uses [] to denote concepts for easier parsing in this demo, 
-    // or we just regex match the keys.
-
-    // Strategy: Regex match keys from MOCK_CONCEPTS
-    const conceptKeys = Object.keys(MOCK_CONCEPTS);
-    // Create a regex pattern: (Machine Learning|Neural Network|...)
-    const pattern = new RegExp(`(${conceptKeys.join('|')})|\\[(.*?)\\]`, 'gi');
-
-    const parts = text.split(pattern);
-
+const DocumentViewer = ({ visible, onClose, docData }) => {
     return (
-        <span>
-            {parts.map((part, index) => {
-                if (!part) return null;
+        <Modal
+            title={
+                <Space>
+                    <FilePdfOutlined style={{ color: 'red' }} />
+                    <Text strong>{docData?.title || 'Tài liệu tham khảo'}</Text>
+                </Space>
+            }
+            open={visible}
+            onCancel={onClose}
+            width="90vw"
+            style={{ top: 20 }}
+            footer={null}
+            styles={{
+                body: { height: '85vh', padding: 0, overflow: 'hidden' }, // Ensure strict height
+            }}
+        >
+            <Layout style={{ height: '100%', borderRadius: '0 0 8px 8px', overflow: 'hidden' }} hasSider>
+                <Sider
+                    width={250}
+                    theme="light"
+                    style={{
+                        borderRight: '1px solid #f0f0f0',
+                        overflowY: 'auto',
+                        height: '100%'
+                    }}
+                >
+                    <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0', background: '#fafafa' }}>
+                        <Text strong><BookOutlined /> Mục lục tài liệu</Text>
+                    </div>
+                    <Menu
+                        mode="inline"
+                        defaultSelectedKeys={['1']}
+                        style={{ border: 'none' }}
+                        items={[
+                            { key: '1', label: 'Chương 1: Giới thiệu chung' },
+                            { key: '2', label: 'Chương 2: Các khái niệm cơ bản' },
+                            { key: '3', label: 'Điều 3: Giá trị hoàn lại' },
+                            { key: '4', label: 'Điều 4: Thời gian chờ & Loại trừ' },
+                            { key: '5', label: 'Điều 19: Trách nhiệm bên mua' },
+                            { key: '6', label: 'Phụ lục: Biểu phí & Minh họa' },
+                        ]}
+                    />
+                </Sider>
+                <Content style={{ background: '#525659', height: '100%', overflowY: 'auto', display: 'flex', justifyContent: 'center', padding: '24px' }}>
+                    <div style={{
+                        width: '100%',
+                        maxWidth: 800,
+                        background: 'white',
+                        minHeight: '100%', // Ensure it fills height if content is short
+                        height: 'fit-content', // Allow growing
+                        padding: '48px 60px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        borderRadius: 2
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: 40, borderBottom: '2px solid #f0f0f0', paddingBottom: 20 }}>
+                            <Title level={3} style={{ margin: 0 }}>{docData?.title || 'TÀI LIỆU BẢO HIỂM'}</Title>
+                            <Text type="secondary" style={{ fontSize: 13 }}>Lần cập nhật: 12/2024 • Phiên bản: 2.1</Text>
+                        </div>
 
-                // Check if part is a known concept (case insensitive match)
-                const conceptKey = conceptKeys.find(k => k.toLowerCase() === part.toLowerCase());
-                const contentInsideBrackets = text.match(/\[(.*?)\]/); // Simplified check for brackets in current part context is hard after split.
+                        <div className="document-content">
+                            <Title level={4}>{docData?.page || 'Nội dung chi tiết'}</Title>
 
-                // Actually, let's simplify: The mock data wraps concepts in [].
-                // But the requirement says "Gen ra từ điền: các khái niệm".
-                // Let's support both: direct match or explicit markup.
+                            <Paragraph style={{ fontSize: 16, lineHeight: 1.8, textAlign: 'justify' }}>
+                                <strong>1. Định nghĩa và Phạm vi áp dụng</strong>
+                                <br />
+                                Đây là nội dung giả lập của tài liệu. Trong thực tế, hệ thống sẽ hiển thị file PDF gốc hoặc nội dung chi tiết của trang tài liệu được trích dẫn. Tài liệu này bao gồm các quy tắc, điều khoản và hướng dẫn sử dụng sản phẩm.
+                            </Paragraph>
 
-                if (conceptKey) {
-                    const concept = MOCK_CONCEPTS[conceptKey];
-                    return (
-                        <Popover
-                            key={index}
-                            title={<Space><BookOutlined /> {conceptKey}</Space>}
-                            content={
-                                <div style={{ maxWidth: 300 }}>
-                                    <Paragraph>{concept.definition}</Paragraph>
-                                    <Divider style={{ margin: '8px 0' }} />
-                                    <Text type="secondary" style={{ fontSize: 12 }}>Nguồn: {concept.source}</Text>
-                                </div>
-                            }
-                        >
-                            <Text strong style={{ color: '#1677ff', cursor: 'pointer', borderBottom: '1px dashed #1677ff' }}>
-                                {part}
-                            </Text>
-                        </Popover>
-                    );
-                }
+                            <div style={{
+                                padding: '24px',
+                                background: '#f6ffed',
+                                border: '1px solid #b7eb8f',
+                                borderRadius: 8,
+                                margin: '24px 0'
+                            }}>
+                                <Space align="start">
+                                    <InfoCircleOutlined style={{ color: '#52c41a', marginTop: 4 }} />
+                                    <div>
+                                        <Text strong style={{ color: '#389e0d' }}>Trích dẫn liên quan đến câu hỏi:</Text>
+                                        <Paragraph style={{ margin: '8px 0 0 0', fontStyle: 'italic' }}>
+                                            "Giá trị hoàn lại là số tiền bên mua bảo hiểm sẽ nhận được khi chấm dứt hợp đồng trước thời hạn (sau khi đã đóng phí đủ số năm quy định, thường là 2 năm và được quy định cụ thể tại Bảng minh họa quyền lợi bảo hiểm)"
+                                        </Paragraph>
+                                    </div>
+                                </Space>
+                            </div>
 
-                return <span key={index}>{part}</span>;
-            })}
-        </span>
+                            <Paragraph style={{ fontSize: 16, lineHeight: 1.8, textAlign: 'justify' }}>
+                                <strong>2. Điều khoản thi hành</strong>
+                                <br />
+                                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                                <br /><br />
+                                <em>Ghi chú: {docData?.context || 'Tài liệu này chỉ mang tính chất tham khảo cho quá trình đào tạo.'}</em>
+                            </Paragraph>
+                        </div>
+                    </div>
+                </Content>
+            </Layout>
+        </Modal>
     );
 };
 
-// Better Concept Parser that handles the logic correctly
-const RichTextRenderer = ({ text }) => {
-    // We will replace [Concept] with the Popover
-    // And also auto-detect know concepts if they appear (optional, but let's stick to [Concept] for safety or simple exact match)
-
-    // Let's implement a simple split by regex that captures definitions
+// Update RichTextRenderer to accept a callback
+const RichTextRenderer = ({ text, onOpenSource }) => {
     const regex = /\[(.*?)\]/g;
     const parts = text.split(regex);
-    const matches = text.match(regex) || [];
-
-    // This is a naive splitting, let's reconstruct
-    // If text is "Hello [World]", split gives ["Hello ", "World", ""]
-    // We need to know which one was inside brackets.
-
     let result = [];
     let lastIndex = 0;
-    text.replace(regex, (match, p1, offset) => {
-        // Push text before
-        if (offset > lastIndex) {
-            result.push(text.slice(lastIndex, offset));
+
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            result.push(text.slice(lastIndex, match.index));
         }
 
-        // Push Concept
-        // Check if p1 is in MOCK_CONCEPTS
-        const concept = MOCK_CONCEPTS[p1];
+        const conceptName = match[1];
+        const concept = MOCK_CONCEPTS[conceptName];
+
         if (concept) {
             result.push(
                 <Popover
-                    key={offset}
-                    title={<Space><BookOutlined /> {p1}</Space>}
+                    key={match.index}
+                    title={<Space><BookOutlined /> {conceptName}</Space>}
                     content={
                         <div style={{ maxWidth: 300 }}>
                             <Paragraph>{concept.definition}</Paragraph>
                             <Divider style={{ margin: '8px 0' }} />
-                            <Text type="secondary" style={{ fontSize: 12 }}><InfoCircleOutlined /> Nguồn: {concept.source}</Text>
+                            <Button
+                                type="link"
+                                size="small"
+                                icon={<InfoCircleOutlined />}
+                                style={{ padding: 0 }}
+                                onClick={() => onOpenSource && onOpenSource({ title: concept.source, page: 'Định nghĩa khái niệm' })}
+                            >
+                                Nguồn: {concept.source}
+                            </Button>
                         </div>
                     }
                 >
                     <Text strong style={{ color: '#1677ff', cursor: 'pointer', backgroundColor: '#e6f7ff', padding: '0 4px', borderRadius: 4 }}>
-                        {p1}
+                        {conceptName}
                     </Text>
                 </Popover>
             );
         } else {
-            result.push(match); // Keep original if not found
+            result.push(`[${conceptName}]`);
         }
 
-        lastIndex = offset + match.length;
-    });
+        lastIndex = match.index + match[0].length;
+    }
 
     if (lastIndex < text.length) {
         result.push(text.slice(lastIndex));
@@ -282,6 +330,15 @@ const StudentView = () => {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [showExplanation, setShowExplanation] = useState(false);
 
+    // Document Viewer state
+    const [viewerVisible, setViewerVisible] = useState(false);
+    const [currentDoc, setCurrentDoc] = useState(null);
+
+    const handleOpenDoc = (docInfo) => {
+        setCurrentDoc(docInfo);
+        setViewerVisible(true);
+    };
+
     const handleSendMessage = () => {
         if (!inputValue.trim()) return;
 
@@ -313,6 +370,12 @@ const StudentView = () => {
 
     return (
         <Row gutter={[24, 24]}>
+            <DocumentViewer
+                visible={viewerVisible}
+                onClose={() => setViewerVisible(false)}
+                docData={currentDoc}
+            />
+
             <Col span={24}>
                 <Tabs
                     activeKey={activeTab}
@@ -325,7 +388,12 @@ const StudentView = () => {
                             children: (
                                 <div style={{ maxWidth: 800, margin: '0 auto' }}>
                                     <Card title="Câu hỏi ôn tập #15" bordered={false} extra={<Tag color="blue">Mức độ: Trung bình</Tag>}>
-                                        <Title level={4}><RichTextRenderer text={MOCK_QUESTIONS[0].question} /></Title>
+                                        <Title level={4}>
+                                            <RichTextRenderer
+                                                text={MOCK_QUESTIONS[0].question}
+                                                onOpenSource={handleOpenDoc}
+                                            />
+                                        </Title>
                                         <Divider />
                                         <Radio.Group
                                             onChange={e => {
@@ -368,9 +436,19 @@ const StudentView = () => {
                                                 </Space>
                                                 <Paragraph>
                                                     <Text strong>Giải thích chi tiết:</Text> <br />
-                                                    <RichTextRenderer text={MOCK_QUESTIONS[0].explanation} />
+                                                    <RichTextRenderer
+                                                        text={MOCK_QUESTIONS[0].explanation}
+                                                        onOpenSource={handleOpenDoc}
+                                                    />
                                                 </Paragraph>
-                                                <Tag icon={<BookOutlined />} color="cyan">Nguồn: {MOCK_QUESTIONS[0].source}</Tag>
+                                                <Button
+                                                    type="link"
+                                                    icon={<BookOutlined />}
+                                                    onClick={() => handleOpenDoc({ title: MOCK_QUESTIONS[0].source, page: 'Câu hỏi ôn tập' })}
+                                                    style={{ padding: 0 }}
+                                                >
+                                                    Nguồn: Mở tài liệu
+                                                </Button>
                                             </div>
                                         )}
                                     </Card>
@@ -413,14 +491,22 @@ const StudentView = () => {
                                                                 position: 'relative'
                                                             }}
                                                         >
-                                                            <RichTextRenderer text={msg.content} />
+                                                            <RichTextRenderer
+                                                                text={msg.content}
+                                                                onOpenSource={handleOpenDoc}
+                                                            />
                                                         </div>
                                                         {/* Sources for AI */}
                                                         {msg.sender === 'ai' && msg.sources && (
                                                             <div style={{ marginTop: 8 }}>
                                                                 <Text type="secondary" style={{ fontSize: 12, marginRight: 8 }}>Nguồn trích dẫn:</Text>
                                                                 {msg.sources.map((src, idx) => (
-                                                                    <Tag key={idx} color="default" style={{ cursor: 'pointer' }}>
+                                                                    <Tag
+                                                                        key={idx}
+                                                                        color="blue"
+                                                                        style={{ cursor: 'pointer' }}
+                                                                        onClick={() => handleOpenDoc(src)}
+                                                                    >
                                                                         <BookOutlined /> {src.title} ({src.page})
                                                                     </Tag>
                                                                 ))}
