@@ -64,6 +64,7 @@ import CourseBankPage from "./pages/CourseBankPage";
 import QuizPreparationPage from "./pages/QuizPreparationPage";
 import SalaryV2Page from "./pages/SalaryV2Page";
 import BreadcrumbsDemo from "./pages/BreadcrumbsDemo";
+import AIBVLPage from "./pages/AIBVLPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -78,6 +79,11 @@ const menuItems = [
         key: "/nckh",
         label: "Hệ thống NCKH",
         icon: <DashboardOutlined />,
+    },
+    {
+        key: "/ai-bvl",
+        label: "AI BVL",
+        icon: <RobotOutlined />,
     },
     {
         key: "/ai-learning-assistant",
@@ -400,6 +406,7 @@ function AppLayout() {
 
                         <Route path="/nckh" element={<ResearcherProjectsPage />} />
                         <Route path="/nckh/manager" element={<ManagerProjectsPage />} />
+                        <Route path="/ai-bvl" element={<AIBVLPage />} />
                     </Routes>
                 </Content>
             </Layout>
