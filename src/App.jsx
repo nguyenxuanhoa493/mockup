@@ -65,6 +65,7 @@ import QuizPreparationPage from "./pages/QuizPreparationPage";
 import SalaryV2Page from "./pages/SalaryV2Page";
 import BreadcrumbsDemo from "./pages/BreadcrumbsDemo";
 import AIBVLPage from "./pages/AIBVLPage";
+import OlympicMathPage from "./pages/OlympicMathPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -179,6 +180,11 @@ const menuItems = [
         key: "/breadcrumbs-demo",
         label: "Breadcrumbs Demo",
         icon: <ApartmentOutlined />,
+    },
+    {
+        key: "/olympic-math",
+        label: "Olympic Toán Tuổi Thơ",
+        icon: <TrophyOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -390,6 +396,7 @@ function AppLayout() {
                         <Route path="/quiz-preparation" element={<QuizPreparationPage />} />
                         <Route path="/salary-v2" element={<SalaryV2Page />} />
                         <Route path="/breadcrumbs-demo" element={<BreadcrumbsDemo />} />
+                        <Route path="/olympic-math" element={<OlympicMathPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
