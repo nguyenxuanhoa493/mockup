@@ -76,6 +76,7 @@ const generateUsers = () => {
                 status,
                 createdAt: `${year}-${String(createdMonth).padStart(2, "0")}-${String(createdDay).padStart(2, "0")}`,
                 updatedAt: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`,
+                updatedBy: ["Admin System", "Nguyễn Văn Quản Trị", "Trần Thị HR", "Hệ thống tự động", "Lê Văn IT"][Math.floor(Math.random() * 5)],
                 phone: `09${String(Math.floor(Math.random() * 100000000)).padStart(8, "0")}`,
             });
             id++;
@@ -338,6 +339,12 @@ function UserReportPage() {
             key: "updatedAt",
             width: 180,
             sorter: (a, b) => a.updatedAt.localeCompare(b.updatedAt),
+        },
+        {
+            title: "Người cập nhật",
+            dataIndex: "updatedBy",
+            key: "updatedBy",
+            width: 160,
         },
     ];
 
