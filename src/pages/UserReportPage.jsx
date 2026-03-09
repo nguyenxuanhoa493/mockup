@@ -15,6 +15,8 @@ import {
     message,
     Tabs,
     DatePicker,
+    Segmented,
+    Tooltip,
 } from "antd";
 import {
     UserOutlined,
@@ -28,11 +30,15 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     StopOutlined,
+    TableOutlined,
+    BarChartOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
 // Mock data - danh sách user
+const { RangePicker } = DatePicker;
+
 const generateUsers = () => {
     const statuses = ["active", "deactive", "delete"];
     const departments = ["Phòng Kinh doanh", "Phòng IT", "Phòng Nhân sự", "Phòng Marketing", "Phòng Kế toán", "Phòng Hành chính"];
@@ -51,12 +57,11 @@ const generateUsers = () => {
 
     const users = [];
     let id = 1;
+    const years = [2024, 2025, 2026];
 
-    for (let month = 1; month <= 12; month++) {
-        const countForMonth = 3 + Math.floor(Math.random() * 6);
-        for (let i = 0; i < countForMonth; i++) {
+    const addUsers = (year, month, count, status) => {
+        for (let i = 0; i < count; i++) {
             const nameIdx = (id - 1) % names.length;
-            const status = statuses[Math.floor(Math.random() * 3)];
             const day = 1 + Math.floor(Math.random() * 27);
             const hour = Math.floor(Math.random() * 24);
             const min = Math.floor(Math.random() * 60);
@@ -69,11 +74,22 @@ const generateUsers = () => {
                 email: `user${id}@company.com`,
                 department: departments[Math.floor(Math.random() * departments.length)],
                 status,
-                createdAt: `2025-${String(createdMonth).padStart(2, "0")}-${String(createdDay).padStart(2, "0")}`,
-                updatedAt: `2025-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`,
+                createdAt: `${year}-${String(createdMonth).padStart(2, "0")}-${String(createdDay).padStart(2, "0")}`,
+                updatedAt: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`,
                 phone: `09${String(Math.floor(Math.random() * 100000000)).padStart(8, "0")}`,
             });
             id++;
+        }
+    };
+
+    for (const year of years) {
+        for (let month = 1; month <= 12; month++) {
+            const activeCount = 50 + Math.floor(Math.random() * 51); // 50-100
+            const deactiveCount = 3 + Math.floor(Math.random() * 8); // 3-10
+            const deleteCount = 1 + Math.floor(Math.random() * 5);  // 1-5
+            addUsers(year, month, activeCount, "active");
+            addUsers(year, month, deactiveCount, "deactive");
+            addUsers(year, month, deleteCount, "delete");
         }
     }
     return users;
@@ -81,12 +97,20 @@ const generateUsers = () => {
 
 const allUsers = generateUsers();
 
-const months = [
-    { value: 1, label: "Tháng 1" }, { value: 2, label: "Tháng 2" }, { value: 3, label: "Tháng 3" },
-    { value: 4, label: "Tháng 4" }, { value: 5, label: "Tháng 5" }, { value: 6, label: "Tháng 6" },
-    { value: 7, label: "Tháng 7" }, { value: 8, label: "Tháng 8" }, { value: 9, label: "Tháng 9" },
-    { value: 10, label: "Tháng 10" }, { value: 11, label: "Tháng 11" }, { value: 12, label: "Tháng 12" },
-];
+// Helper: tạo danh sách các tháng giữa 2 mốc (year-month)
+const getMonthsBetween = (startYear, startMonth, endYear, endMonth) => {
+    const result = [];
+    let y = startYear;
+    let m = startMonth;
+    while (y < endYear || (y === endYear && m <= endMonth)) {
+        result.push({ year: y, month: m });
+        m++;
+        if (m > 12) { m = 1; y++; }
+    }
+    return result;
+};
+
+const formatMonthLabel = (year, month) => `T${month}/${year}`;
 
 const statusMap = {
     active: { text: "Hoạt động", color: "green", icon: <CheckCircleOutlined /> },
@@ -99,32 +123,47 @@ function UserReportPage() {
         document.title = "Báo cáo User theo tháng - Mockup App";
     }, []);
 
-    const [selectedYear, setSelectedYear] = useState(2025);
+    // Default: 6 tháng gần nhất
+    const [monthRange, setMonthRange] = useState(null);
     const [exportModalVisible, setExportModalVisible] = useState(false);
-    const [exportMonth, setExportMonth] = useState(null);
+    const [exportMonthKey, setExportMonthKey] = useState(null); // "2025-03"
+    const [viewMode, setViewMode] = useState("table"); // "table" | "chart"
+
+    // Danh sách tháng trong khoảng chọn
+    const selectedMonths = useMemo(() => {
+        if (!monthRange || !monthRange[0] || !monthRange[1]) {
+            // Default: 01/2025 -> 12/2025
+            return getMonthsBetween(2025, 1, 2025, 12);
+        }
+        const start = monthRange[0];
+        const end = monthRange[1];
+        return getMonthsBetween(start.year(), start.month() + 1, end.year(), end.month() + 1);
+    }, [monthRange]);
 
     // Tính thống kê theo tháng
+    // Tích lũy tháng trước kỳ = 100, tích lũy = tích lũy trước + active - deactive - delete
     const monthlyStats = useMemo(() => {
         const stats = [];
-        let cumulative = 0;
+        let cumulative = 100;
 
-        for (let m = 1; m <= 12; m++) {
+        for (const { year, month } of selectedMonths) {
             const usersInMonth = allUsers.filter((u) => {
-                const updatedMonth = parseInt(u.updatedAt.split("-")[1]);
-                return updatedMonth === m;
+                const parts = u.updatedAt.split("-");
+                const uYear = parseInt(parts[0]);
+                const uMonth = parseInt(parts[1]);
+                return uYear === year && uMonth === month;
             });
 
             const active = usersInMonth.filter((u) => u.status === "active").length;
             const deactive = usersInMonth.filter((u) => u.status === "deactive").length;
             const deleted = usersInMonth.filter((u) => u.status === "delete").length;
-            const total = usersInMonth.length;
-            cumulative += total;
+            cumulative = cumulative + active - deactive - deleted;
 
             stats.push({
-                key: m,
-                month: `Tháng ${m}`,
-                monthNum: m,
-                total,
+                key: `${year}-${month}`,
+                month: formatMonthLabel(year, month),
+                year,
+                monthNum: month,
                 active,
                 deactive,
                 deleted,
@@ -132,21 +171,23 @@ function UserReportPage() {
             });
         }
         return stats;
-    }, []);
+    }, [selectedMonths]);
 
-    // Tổng cộng
+    // Tổng cộng trong khoảng
     const totalStats = useMemo(() => {
-        const totalActive = allUsers.filter((u) => u.status === "active").length;
-        const totalDeactive = allUsers.filter((u) => u.status === "deactive").length;
-        const totalDeleted = allUsers.filter((u) => u.status === "delete").length;
-        return { totalActive, totalDeactive, totalDeleted, total: allUsers.length };
-    }, []);
+        const totalActive = monthlyStats.reduce((s, m) => s + m.active, 0);
+        const totalDeactive = monthlyStats.reduce((s, m) => s + m.deactive, 0);
+        const totalDeleted = monthlyStats.reduce((s, m) => s + m.deleted, 0);
+        const lastCumulative = monthlyStats.length > 0 ? monthlyStats[monthlyStats.length - 1].cumulative : 100;
+        return { totalActive, totalDeactive, totalDeleted, lastCumulative };
+    }, [monthlyStats]);
 
     // Lấy users theo tháng cho export
-    const getUsersByMonth = (month) => {
+    const getUsersByMonthKey = (key) => {
+        const [y, m] = key.split("-").map(Number);
         return allUsers.filter((u) => {
-            const updatedMonth = parseInt(u.updatedAt.split("-")[1]);
-            return updatedMonth === month;
+            const parts = u.updatedAt.split("-");
+            return parseInt(parts[0]) === y && parseInt(parts[1]) === m;
         });
     };
 
@@ -159,14 +200,6 @@ function UserReportPage() {
             width: 100,
             fixed: "left",
             render: (text) => <Text strong>{text}</Text>,
-        },
-        {
-            title: "Số lượng trong tháng",
-            dataIndex: "total",
-            key: "total",
-            width: 150,
-            align: "center",
-            render: (val) => <Text strong style={{ fontSize: 16 }}>{val}</Text>,
         },
         {
             title: (
@@ -211,7 +244,7 @@ function UserReportPage() {
             title: (
                 <Space>
                     <RiseOutlined style={{ color: "#1677ff" }} />
-                    <span>Tích lũy</span>
+                    <span>Số user active hiện tại</span>
                 </Space>
             ),
             dataIndex: "cumulative",
@@ -230,7 +263,7 @@ function UserReportPage() {
                     type="link"
                     icon={<DownloadOutlined />}
                     onClick={() => {
-                        setExportMonth(record.monthNum);
+                        setExportMonthKey(record.key);
                         setExportModalVisible(true);
                     }}
                 >
@@ -309,22 +342,25 @@ function UserReportPage() {
     ];
 
     // Data cho modal export preview
-    const exportUsers = exportMonth ? getUsersByMonth(exportMonth) : [];
-    const exportStats = exportMonth ? monthlyStats.find((s) => s.monthNum === exportMonth) : null;
+    const exportUsers = exportMonthKey ? getUsersByMonthKey(exportMonthKey) : [];
+    const exportStats = exportMonthKey ? monthlyStats.find((s) => s.key === exportMonthKey) : null;
+    const exportLabel = exportStats ? exportStats.month : "";
 
     const handleExport = () => {
-        message.success(`Đã xuất báo cáo Tháng ${exportMonth}/${selectedYear} thành công!`);
+        message.success(`Đã xuất báo cáo ${exportLabel} thành công!`);
         setExportModalVisible(false);
     };
 
-    const handleExportAll = () => {
-        message.success(`Đã xuất báo cáo tất cả các tháng năm ${selectedYear} thành công!`);
-    };
+    const rangeLabel = useMemo(() => {
+        if (selectedMonths.length === 0) return "";
+        const first = selectedMonths[0];
+        const last = selectedMonths[selectedMonths.length - 1];
+        return `${formatMonthLabel(first.year, first.month)} → ${formatMonthLabel(last.year, last.month)}`;
+    }, [selectedMonths]);
 
-    // Tính tháng hiện tại stats
-    const currentMonth = new Date().getMonth() + 1;
-    const currentMonthStats = monthlyStats.find((s) => s.monthNum <= 12) || monthlyStats[monthlyStats.length - 1];
-    const prevMonthStats = monthlyStats.length >= 2 ? monthlyStats[monthlyStats.length - 2] : null;
+    const handleExportAll = () => {
+        message.success(`Đã xuất báo cáo ${rangeLabel} thành công!`);
+    };
 
     return (
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
@@ -340,13 +376,13 @@ function UserReportPage() {
                         </Col>
                         <Col>
                             <Space>
-                                <Text strong>Năm:</Text>
-                                <DatePicker
-                                    picker="year"
-                                    style={{ width: 120 }}
-                                    defaultValue={null}
-                                    placeholder="2025"
-                                    onChange={(date) => setSelectedYear(date ? date.year() : 2025)}
+                                <Text strong>Khoảng thời gian:</Text>
+                                <RangePicker
+                                    picker="month"
+                                    style={{ width: 280 }}
+                                    placeholder={["Từ tháng", "Đến tháng"]}
+                                    onChange={(dates) => setMonthRange(dates)}
+                                    value={monthRange}
                                 />
                                 <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportAll}>
                                     Xuất tất cả
@@ -361,8 +397,8 @@ function UserReportPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card>
                             <Statistic
-                                title="Tổng User"
-                                value={totalStats.total}
+                                title="Số user active hiện tại"
+                                value={totalStats.lastCumulative}
                                 prefix={<TeamOutlined />}
                                 valueStyle={{ color: "#1677ff" }}
                             />
@@ -371,87 +407,201 @@ function UserReportPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card>
                             <Statistic
-                                title="Active"
+                                title="Tổng Active trong kỳ"
                                 value={totalStats.totalActive}
                                 prefix={<CheckCircleOutlined />}
                                 valueStyle={{ color: "#52c41a" }}
-                                suffix={
-                                    <Text type="secondary" style={{ fontSize: 14 }}>
-                                        ({((totalStats.totalActive / totalStats.total) * 100).toFixed(1)}%)
-                                    </Text>
-                                }
                             />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} md={6}>
                         <Card>
                             <Statistic
-                                title="Deactive"
+                                title="Tổng Deactive trong kỳ"
                                 value={totalStats.totalDeactive}
                                 prefix={<CloseCircleOutlined />}
                                 valueStyle={{ color: "#faad14" }}
-                                suffix={
-                                    <Text type="secondary" style={{ fontSize: 14 }}>
-                                        ({((totalStats.totalDeactive / totalStats.total) * 100).toFixed(1)}%)
-                                    </Text>
-                                }
                             />
                         </Card>
                     </Col>
                     <Col xs={24} sm={12} md={6}>
                         <Card>
                             <Statistic
-                                title="Delete"
+                                title="Tổng Delete trong kỳ"
                                 value={totalStats.totalDeleted}
                                 prefix={<StopOutlined />}
                                 valueStyle={{ color: "#ff4d4f" }}
-                                suffix={
-                                    <Text type="secondary" style={{ fontSize: 14 }}>
-                                        ({((totalStats.totalDeleted / totalStats.total) * 100).toFixed(1)}%)
-                                    </Text>
-                                }
                             />
                         </Card>
                     </Col>
                 </Row>
 
                 {/* Bảng thống kê theo tháng */}
-                <Card title="Thống kê chi tiết theo tháng">
-                    <Table
-                        columns={summaryColumns}
-                        dataSource={monthlyStats}
-                        pagination={false}
-                        bordered
-                        size="middle"
-                        scroll={{ x: 900 }}
-                        summary={() => (
-                            <Table.Summary fixed>
-                                <Table.Summary.Row style={{ background: "#fafafa" }}>
-                                    <Table.Summary.Cell index={0}>
-                                        <Text strong>Tổng cộng</Text>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={1} align="center">
-                                        <Text strong style={{ fontSize: 16 }}>{totalStats.total}</Text>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={2} align="center">
-                                        <Tag color="green">{totalStats.totalActive}</Tag>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={3} align="center">
-                                        <Tag color="orange">{totalStats.totalDeactive}</Tag>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={4} align="center">
-                                        <Tag color="red">{totalStats.totalDeleted}</Tag>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={5} align="center">
-                                        <Text strong style={{ color: "#1677ff", fontSize: 16 }}>
-                                            {totalStats.total}
-                                        </Text>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={6} />
-                                </Table.Summary.Row>
-                            </Table.Summary>
-                        )}
-                    />
+                <Card
+                    title="Thống kê chi tiết theo tháng"
+                    extra={
+                        <Segmented
+                            value={viewMode}
+                            onChange={setViewMode}
+                            options={[
+                                { value: "table", icon: <TableOutlined /> },
+                                { value: "chart", icon: <BarChartOutlined /> },
+                            ]}
+                        />
+                    }
+                >
+                    {viewMode === "table" ? (
+                        <Table
+                            columns={summaryColumns}
+                            dataSource={monthlyStats}
+                            pagination={false}
+                            bordered
+                            size="middle"
+                            scroll={{ x: 900 }}
+                            summary={() => (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row style={{ background: "#fafafa" }}>
+                                        <Table.Summary.Cell index={0}>
+                                            <Text strong>Tổng cộng</Text>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="center">
+                                            <Tag color="green">{totalStats.totalActive}</Tag>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} align="center">
+                                            <Tag color="orange">{totalStats.totalDeactive}</Tag>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={3} align="center">
+                                            <Tag color="red">{totalStats.totalDeleted}</Tag>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={4} align="center">
+                                            <Text strong style={{ color: "#1677ff", fontSize: 16 }}>
+                                                {totalStats.lastCumulative}
+                                            </Text>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={5} />
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            )}
+                        />
+                    ) : (
+                        <div>
+                            {/* Legend */}
+                            <div style={{ display: "flex", gap: 24, marginBottom: 16, justifyContent: "center" }}>
+                                <Space><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: "#52c41a" }} /> <Text>Active</Text></Space>
+                                <Space><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: "#faad14" }} /> <Text>Deactive</Text></Space>
+                                <Space><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, background: "#ff4d4f" }} /> <Text>Delete</Text></Space>
+                                <Space><span style={{ display: "inline-block", width: 20, height: 3, borderRadius: 2, background: "#1677ff" }} /> <Text>Số user active hiện tại</Text></Space>
+                            </div>
+                            {/* Stacked Bar + Line chart */}
+                            {(() => {
+                                const maxStack = Math.max(...monthlyStats.map((s) => s.active + s.deactive + s.deleted));
+                                const minCum = Math.min(...monthlyStats.map((s) => s.cumulative));
+                                const maxCum = Math.max(...monthlyStats.map((s) => s.cumulative));
+                                const cumPad = Math.max(Math.round((maxCum - minCum) * 0.1), 1);
+                                const cumMin = minCum - cumPad;
+                                const cumMax = maxCum + cumPad;
+                                const cumRange = cumMax - cumMin || 1;
+                                const chartH = 300;
+                                const n = monthlyStats.length;
+
+                                // Ticks trục trái (bar)
+                                const tickCount = 5;
+                                const barStep = Math.ceil(maxStack / tickCount) || 1;
+                                const leftTicks = [];
+                                for (let i = 0; i <= tickCount; i++) {
+                                    const val = barStep * i;
+                                    if (val <= maxStack + barStep) leftTicks.push(val);
+                                }
+
+                                // Ticks trục phải (line)
+                                const cumStep = Math.ceil((maxCum - minCum) / tickCount) || 1;
+                                const rightTicks = [];
+                                for (let i = 0; i <= tickCount; i++) {
+                                    const val = minCum + cumStep * i;
+                                    if (val <= cumMax) rightTicks.push(val);
+                                }
+
+                                // Line points
+                                const linePoints = monthlyStats.map((s, i) => {
+                                    const x = ((i + 0.5) / n) * 100;
+                                    const y = chartH - ((s.cumulative - cumMin) / cumRange) * (chartH - 20);
+                                    return { x, y, cumulative: s.cumulative, month: s.month };
+                                });
+
+                                return (
+                                    <div style={{ display: "flex", gap: 0 }}>
+                                        {/* Left Y axis (bar) */}
+                                        <div style={{ width: 45, height: chartH, position: "relative", flexShrink: 0 }}>
+                                            {leftTicks.map((val) => {
+                                                const y = chartH - (val / maxStack) * (chartH * 0.9);
+                                                return (
+                                                    <Text key={val} style={{ position: "absolute", left: 0, top: y - 8, fontSize: 11, color: "#333", whiteSpace: "nowrap" }}>
+                                                        {val}
+                                                    </Text>
+                                                );
+                                            })}
+                                        </div>
+                                        {/* Chart area */}
+                                        <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
+                                            {/* Stacked bars */}
+                                            <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: chartH, padding: "0 8px" }}>
+                                                {monthlyStats.map((s) => {
+                                                    const stackTotal = s.active + s.deactive + s.deleted;
+                                                    const barTotalH = (stackTotal / maxStack) * chartH * 0.9;
+                                                    const activeH = stackTotal ? (s.active / stackTotal) * barTotalH : 0;
+                                                    const deactiveH = stackTotal ? (s.deactive / stackTotal) * barTotalH : 0;
+                                                    const deleteH = stackTotal ? (s.deleted / stackTotal) * barTotalH : 0;
+                                                    return (
+                                                        <div key={s.key} style={{ flex: 1, minWidth: 28, display: "flex", justifyContent: "center", height: "100%", alignItems: "flex-end" }}>
+                                                            <Tooltip title={<div><div>Active: {s.active}</div><div>Deactive: {s.deactive}</div><div>Delete: {s.deleted}</div></div>}>
+                                                                <div style={{ width: 36, cursor: "pointer", display: "flex", flexDirection: "column" }}>
+                                                                    <div style={{ height: activeH, background: "#52c41a", borderRadius: "3px 3px 0 0", minHeight: s.active ? 2 : 0 }} />
+                                                                    <div style={{ height: deactiveH, background: "#faad14", minHeight: s.deactive ? 2 : 0 }} />
+                                                                    <div style={{ height: deleteH, background: "#ff4d4f", minHeight: s.deleted ? 2 : 0 }} />
+                                                                </div>
+                                                            </Tooltip>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {/* Line overlay */}
+                                            <svg style={{ position: "absolute", top: 0, left: 8, width: "calc(100% - 16px)", height: chartH, pointerEvents: "none", overflow: "visible" }}>
+                                                {linePoints.map((p, i) => {
+                                                    if (i === 0) return null;
+                                                    const prev = linePoints[i - 1];
+                                                    return <line key={i} x1={`${prev.x}%`} y1={prev.y} x2={`${p.x}%`} y2={p.y} stroke="#1677ff" strokeWidth={2.5} />;
+                                                })}
+                                                {linePoints.map((p, i) => (
+                                                    <Tooltip key={i} title={`${p.month}: ${p.cumulative}`}>
+                                                        <circle cx={`${p.x}%`} cy={p.y} r={4} fill="#fff" stroke="#1677ff" strokeWidth={2} style={{ pointerEvents: "all", cursor: "pointer" }} />
+                                                    </Tooltip>
+                                                ))}
+                                            </svg>
+                                            {/* X labels */}
+                                            <div style={{ display: "flex", gap: 4, padding: "6px 8px 0", height: 24 }}>
+                                                {monthlyStats.map((s) => (
+                                                    <div key={s.key} style={{ flex: 1, minWidth: 28, textAlign: "center" }}>
+                                                        <Text style={{ fontSize: 11, whiteSpace: "nowrap" }}>{s.month}</Text>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* Right Y axis */}
+                                        <div style={{ width: 55, height: chartH, position: "relative", flexShrink: 0 }}>
+                                            {rightTicks.map((val) => {
+                                                const y = chartH - ((val - cumMin) / cumRange) * (chartH - 20);
+                                                return (
+                                                    <Text key={val} style={{ position: "absolute", right: 0, top: y - 8, fontSize: 11, color: "#1677ff", whiteSpace: "nowrap" }}>
+                                                        {val}
+                                                    </Text>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                 </Card>
 
                 {/* Modal xuất chi tiết */}
@@ -459,7 +609,7 @@ function UserReportPage() {
                     title={
                         <Space>
                             <DownloadOutlined />
-                            <span>Xuất báo cáo chi tiết - Tháng {exportMonth}/{selectedYear}</span>
+                            <span>Xuất báo cáo chi tiết - {exportLabel}</span>
                         </Space>
                     }
                     open={exportModalVisible}
@@ -487,13 +637,10 @@ function UserReportPage() {
 
                             {/* Bảng 1: Thống kê */}
                             <Card
-                                title={<Text strong>Bảng 1: Thống kê tổng quan - Tháng {exportMonth}</Text>}
+                                title={<Text strong>Bảng 1: Thống kê tổng quan - {exportLabel}</Text>}
                                 size="small"
                             >
                                 <Row gutter={[16, 16]}>
-                                    <Col span={6}>
-                                        <Statistic title="Tổng trong tháng" value={exportStats.total} valueStyle={{ color: "#1677ff" }} />
-                                    </Col>
                                     <Col span={6}>
                                         <Statistic title="Active" value={exportStats.active} valueStyle={{ color: "#52c41a" }} />
                                     </Col>
@@ -506,7 +653,7 @@ function UserReportPage() {
                                 </Row>
                                 <Divider />
                                 <Statistic
-                                    title="Số lượng tích lũy đến tháng này"
+                                    title="Số user active hiện tại"
                                     value={exportStats.cumulative}
                                     prefix={<RiseOutlined />}
                                     valueStyle={{ color: "#1677ff" }}
@@ -515,7 +662,7 @@ function UserReportPage() {
 
                             {/* Bảng 2: Chi tiết */}
                             <Card
-                                title={<Text strong>Bảng 2: Chi tiết user - Tháng {exportMonth}</Text>}
+                                title={<Text strong>Bảng 2: Chi tiết user - {exportLabel}</Text>}
                                 size="small"
                             >
                                 <Tabs
