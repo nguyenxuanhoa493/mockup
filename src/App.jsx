@@ -66,6 +66,8 @@ import SalaryV2Page from "./pages/SalaryV2Page";
 import BreadcrumbsDemo from "./pages/BreadcrumbsDemo";
 import AIBVLPage from "./pages/AIBVLPage";
 import OlympicMathPage from "./pages/OlympicMathPage";
+import KirkpatrickEvaluationPage from "./pages/KirkpatrickEvaluationPage";
+import UserReportPage from "./pages/UserReportPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -180,6 +182,16 @@ const menuItems = [
         key: "/breadcrumbs-demo",
         label: "Breadcrumbs Demo",
         icon: <ApartmentOutlined />,
+    },
+    {
+        key: "/kirkpatrick",
+        label: "Đánh giá Kirkpatrick",
+        icon: <SafetyCertificateOutlined />,
+    },
+    {
+        key: "/user-report",
+        label: "Báo cáo User theo tháng",
+        icon: <TeamOutlined />,
     },
     {
         key: "/olympic-math",
@@ -396,6 +408,8 @@ function AppLayout() {
                         <Route path="/quiz-preparation" element={<QuizPreparationPage />} />
                         <Route path="/salary-v2" element={<SalaryV2Page />} />
                         <Route path="/breadcrumbs-demo" element={<BreadcrumbsDemo />} />
+                        <Route path="/kirkpatrick" element={<KirkpatrickEvaluationPage />} />
+                        <Route path="/user-report" element={<UserReportPage />} />
                         <Route path="/olympic-math" element={<OlympicMathPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
