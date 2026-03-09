@@ -127,7 +127,7 @@ function UserReportPage() {
     const [monthRange, setMonthRange] = useState(null);
     const [exportModalVisible, setExportModalVisible] = useState(false);
     const [exportMonthKey, setExportMonthKey] = useState(null); // "2025-03"
-    const [viewMode, setViewMode] = useState("table"); // "table" | "chart"
+    const [viewMode, setViewMode] = useState("chart"); // "table" | "chart"
 
     // Danh sách tháng trong khoảng chọn
     const selectedMonths = useMemo(() => {
