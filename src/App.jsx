@@ -27,6 +27,7 @@ import {
     DollarOutlined,
     CheckSquareOutlined,
     ApartmentOutlined,
+    BookOutlined,
 } from "@ant-design/icons";
 import {
     HashRouter as Router,
@@ -66,6 +67,7 @@ import SalaryV2Page from "./pages/SalaryV2Page";
 import BreadcrumbsDemo from "./pages/BreadcrumbsDemo";
 import AIBVLPage from "./pages/AIBVLPage";
 import OlympicMathPage from "./pages/OlympicMathPage";
+import Math4CurriculumPage from "./pages/Math4CurriculumPage";
 import KirkpatrickEvaluationPage from "./pages/KirkpatrickEvaluationPage";
 import UserReportPage from "./pages/UserReportPage";
 
@@ -197,6 +199,11 @@ const menuItems = [
         key: "/olympic-math",
         label: "Olympic Toán Tuổi Thơ",
         icon: <TrophyOutlined />,
+    },
+    {
+        key: "/math4-curriculum",
+        label: "Phân loại câu hỏi Toán lớp 4",
+        icon: <BookOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -411,6 +418,7 @@ function AppLayout() {
                         <Route path="/kirkpatrick" element={<KirkpatrickEvaluationPage />} />
                         <Route path="/user-report" element={<UserReportPage />} />
                         <Route path="/olympic-math" element={<OlympicMathPage />} />
+                        <Route path="/math4-curriculum" element={<Math4CurriculumPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
