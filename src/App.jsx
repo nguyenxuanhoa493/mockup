@@ -70,6 +70,9 @@ import OlympicMathPage from "./pages/OlympicMathPage";
 import Math4CurriculumPage from "./pages/Math4CurriculumPage";
 import KirkpatrickEvaluationPage from "./pages/KirkpatrickEvaluationPage";
 import UserReportPage from "./pages/UserReportPage";
+import RubricGradingPage from "./pages/RubricGradingPage";
+import StudentEvaluationPage from "./pages/StudentEvaluationPage";
+import BudgetManagementPage from "./pages/BudgetManagementPage";
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -204,6 +207,21 @@ const menuItems = [
         key: "/math4-curriculum",
         label: "Phân loại câu hỏi Toán lớp 4",
         icon: <BookOutlined />,
+    },
+    {
+        key: "/rubric-grading",
+        label: "Chấm điểm Rubric",
+        icon: <FormOutlined />,
+    },
+    {
+        key: "/student-evaluation",
+        label: "Đánh giá học viên",
+        icon: <CheckSquareOutlined />,
+    },
+    {
+        key: "/budget-management",
+        label: "Quản lý chi phí & ngân sách",
+        icon: <DollarOutlined />,
     },
     {
         key: "/plyr-demo",
@@ -419,6 +437,9 @@ function AppLayout() {
                         <Route path="/user-report" element={<UserReportPage />} />
                         <Route path="/olympic-math" element={<OlympicMathPage />} />
                         <Route path="/math4-curriculum" element={<Math4CurriculumPage />} />
+                        <Route path="/rubric-grading" element={<RubricGradingPage />} />
+                        <Route path="/student-evaluation" element={<StudentEvaluationPage />} />
+                        <Route path="/budget-management" element={<BudgetManagementPage />} />
                         <Route path="/plyr-demo" element={<PlyrDemoPage />} />
                         <Route
                             path="/delete-notification"
